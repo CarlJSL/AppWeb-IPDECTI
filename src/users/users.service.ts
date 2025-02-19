@@ -46,8 +46,10 @@ export class UsersService extends PrismaClient implements OnModuleInit {
     return `This action returns all users`;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} user`;
+  async findOneByEmail(email: string) {
+    return await this.user.findUnique({
+      where: { email: email },
+    });
   }
 
   update(id: number, updateUserDto: UpdateUserDto) {
