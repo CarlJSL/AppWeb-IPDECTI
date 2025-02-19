@@ -31,6 +31,7 @@
 ```bash
 $ npm install
 ```
+Crear la carpeta `.env` en base a la `.env.template`
 
 ## Creación de Migración de la tabla 
 ```bash
