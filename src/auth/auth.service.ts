@@ -6,9 +6,11 @@ import {
 } from '@nestjs/common';
 import { LoginDto } from './dto/login.dto';
 import * as bcrypt from 'bcrypt';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, User } from '@prisma/client';
 import { UsersService } from 'src/users/users.service';
 import { JwtService } from '@nestjs/jwt';
+import { envs } from 'src/config/envs';
+import { JwtPayload } from './interfaces/jwt-payload.interface';
 
 @Injectable()
 export class AuthService extends PrismaClient implements OnModuleInit {
@@ -21,6 +23,28 @@ export class AuthService extends PrismaClient implements OnModuleInit {
     private readonly jwtService: JwtService,
   ) {
     super();
+  }
+  async signJWT(payload: JwtPayload) {
+    return this.jwtService.sign(payload);
+  }
+
+  async verifyToken(token: string) {
+    try {
+      const { sub, iat, exp, ...user } = this.jwtService.verify(token, {
+        secret: envs.jwtSecret,
+      });
+
+      return {
+        user: user,
+        token: await this.signJWT(user),
+      };
+    } catch (error) {
+      console.log(error);
+      throw new UnauthorizedException({
+        status: 401,
+        message: 'Invalid token',
+      });
+    }
   }
 
   async login(loginDto: LoginDto) {
@@ -37,7 +61,9 @@ export class AuthService extends PrismaClient implements OnModuleInit {
         throw new UnauthorizedException('Invalid email or password');
       }
 
-      const payload = { email: user.email };
+      const { password: __, ...rest } = user;
+
+      const payload = { data: rest };
 
       const token = await this.jwtService.signAsync(payload);
 
@@ -51,17 +77,5 @@ export class AuthService extends PrismaClient implements OnModuleInit {
         message: 'Error Interno del Servidor',
       });
     }
-  }
-
-  findAll() {
-    return `This action returns all auth`;
-  }
-
-  findOne(id: number) {
-    return `This action returns a #${id} auth`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} auth`;
   }
 }

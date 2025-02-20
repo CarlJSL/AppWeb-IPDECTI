@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  OnModuleInit,
+} from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PrismaClient } from '@prisma/client';
@@ -6,7 +11,6 @@ import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersService extends PrismaClient implements OnModuleInit {
-
   private readonly logger = new Logger('ServiceUsers');
 
   async onModuleInit() {
@@ -15,14 +19,14 @@ export class UsersService extends PrismaClient implements OnModuleInit {
   }
 
   async create(createUserDto: CreateUserDto) {
-     // Verificar si el email ya existe
-     const data = createUserDto;
-     const existingUser = await this.user.findUnique({
+    // Verificar si el email ya existe
+    const data = createUserDto;
+    const existingUser = await this.user.findUnique({
       where: { email: data.email },
     });
 
     if (existingUser) {
-      throw new BadRequestException("El email ya está registrado");
+      throw new BadRequestException('El email ya está registrado');
     }
 
     // Hashear la contraseña
@@ -38,9 +42,8 @@ export class UsersService extends PrismaClient implements OnModuleInit {
       },
     });
 
-    return { message: "Usuario registrado exitosamente", user };
+    return { message: 'Usuario registrado exitosamente', user };
   }
-  
 
   findAll() {
     return `This action returns all users`;
