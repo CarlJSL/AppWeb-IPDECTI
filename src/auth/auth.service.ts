@@ -11,6 +11,7 @@ import { UsersService } from 'src/users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import { envs } from 'src/config/envs';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
+import { VerifyTokenDto } from './dto/token.dto';
 
 @Injectable()
 export class AuthService extends PrismaClient implements OnModuleInit {
@@ -28,9 +29,9 @@ export class AuthService extends PrismaClient implements OnModuleInit {
     return this.jwtService.sign(payload);
   }
 
-  async verifyToken(token: string) {
+  async verifyToken(tokenDto: VerifyTokenDto) {
     try {
-      const { sub, iat, exp, ...user } = this.jwtService.verify(token, {
+      const { sub, iat, exp, ...user } = this.jwtService.verify(tokenDto.token, {
         secret: envs.jwtSecret,
       });
 
