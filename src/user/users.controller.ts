@@ -21,7 +21,7 @@ import { Role } from '@prisma/client';
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  @Roles('ADMIN')  // 🚀 Solo los usuarios con rol ADMIN pueden acceder
+  @Roles(Role.ADMIN)  
   @Post()
   create(@Body() createUserDto: CreateUserDto) {
     return this.usersService.create(createUserDto);

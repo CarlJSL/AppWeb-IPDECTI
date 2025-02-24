@@ -8,20 +8,18 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
-export class UsersService extends PrismaClient implements OnModuleInit {
+export class UsersService {
   private readonly logger = new Logger('ServiceUsers');
 
-  async onModuleInit() {
-    this.$connect();
-    this.logger.log('Database connected');
-  }
+  constructor(private readonly prisma: PrismaService) {}
 
   async create(createUserDto: CreateUserDto) {
     // Verificar si el email ya existe
     const data = createUserDto;
-    const existingUser = await this.user.findUnique({
+    const existingUser = await this.prisma.user.findUnique({
       where: { email: data.email },
     });
 
@@ -33,7 +31,7 @@ export class UsersService extends PrismaClient implements OnModuleInit {
     const hashedPassword = await bcrypt.hash(data.password, 10);
 
     // Crear el usuario con el rol seleccionado
-    const user = await this.user.create({
+    const user = await this.prisma.user.create({
       data: {
         name: data.name,
         email: data.email,
@@ -42,7 +40,7 @@ export class UsersService extends PrismaClient implements OnModuleInit {
       },
     });
 
-    return { message: 'Usuario registrado exitosamente', user };
+    return { message: 'Usuario registrado exitosamente'};
   }
 
   findAll() {
@@ -50,7 +48,7 @@ export class UsersService extends PrismaClient implements OnModuleInit {
   }
 
   async findOneByEmail(email: string) {
-    return await this.user.findUnique({
+    return await this.prisma.user.findUnique({
       where: { email: email },
     });
   }
