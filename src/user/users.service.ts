@@ -1,14 +1,9 @@
-import {
-  BadRequestException,
-  Injectable,
-  Logger,
-  OnModuleInit,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { OrderPaginationDto } from './dto/user-paginacion.dto';
 
 @Injectable()
 export class UsersService {
@@ -39,8 +34,46 @@ export class UsersService {
     return { message: 'Usuario registrado exitosamente' };
   }
 
-  findAll() {
-    return `This action returns all users`;
+  async findAll(userPaginationDto: OrderPaginationDto) {
+    const statusUser = userPaginationDto.status;
+    const currentPage = userPaginationDto.page;
+    const limit = userPaginationDto.limit;
+
+    const totalNumUser = await this.prisma.user.count({
+      where: {
+        status: statusUser,
+      },
+    });
+
+    const lastPage = Math.ceil( totalNumUser / limit);
+
+    if (currentPage > lastPage || currentPage < 1) {
+      return {
+        data: [],
+        meta: {
+          total: totalNumUser,
+          page: currentPage,
+          lastPage,
+          message: 'No hay datos disponibles para esta página.',
+        },
+      };
+    }
+
+    return {
+      data: await this.prisma.user.findMany({
+        skip: (currentPage - 1) * limit,
+        take: limit,
+        where: {
+          status: statusUser,
+        },
+      }),
+      meta: {
+        total: totalNumUser, 
+        page: currentPage, 
+        lastPage, 
+      },
+    };
+
   }
 
   async findOneByEmail(email: string) {
