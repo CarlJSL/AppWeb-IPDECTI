@@ -32,6 +32,7 @@ export class UsersController {
     return this.usersService.findAll();
   }
 
+  @Roles(Role.ADMIN,Role.TEACHER)
   @Get(':email')
   findOneByEmail(@Param('email') id: string) {
     return this.usersService.findOneByEmail(id);
