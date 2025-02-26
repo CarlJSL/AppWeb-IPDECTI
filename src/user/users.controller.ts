@@ -12,22 +12,27 @@ import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { AuthGuard } from 'src/auth/guards/auth.guard';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { Roles } from 'src/auth/decorators/roles.decorator';
+import { Role } from '@prisma/client';
 
+@UseGuards(AuthGuard, RolesGuard)
 @Controller('users')
-@UseGuards(AuthGuard)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
+  @Roles(Role.ADMIN)  
   @Post()
   create(@Body() createUserDto: CreateUserDto) {
     return this.usersService.create(createUserDto);
   }
-
+  
   @Get()
   findAll() {
     return this.usersService.findAll();
   }
 
+  @Roles(Role.ADMIN,Role.TEACHER)
   @Get(':email')
   findOneByEmail(@Param('email') id: string) {
     return this.usersService.findOneByEmail(id);
