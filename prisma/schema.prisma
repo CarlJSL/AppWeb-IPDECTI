@@ -14,75 +14,98 @@ datasource db {
 }
 
 model User {
-  id             String        @id @default(uuid())
-  name           String
-  email          String        @unique
-  password       String
-  role           Role @default(STUDENT)
-  enrollments    Enrollment[]  // Inscripciones del usuario
-  attendance     Attendance[]  // Asistencias del usuario
-  grades         Grade[]       // Calificaciones del usuario
-  taughtCourses  Course[]      @relation("TeacherCourses") // Cursos que el usuario enseña
-  certificates   Certificate[] // Certificados emitidos para el usuario
-  userProfile    UserProfile?
+  id        String     @id @default(uuid())
+  name      String
+  email     String     @unique
+  password  String
+  role      Role       @default(STUDENT)
+  status    UserStatus @default(ACTIVE) // Estado del usuario
+  createdBy String? // ID del usuario que creó este usuario
+  updatedBy String? // ID del usuario que realizó la última modificación
+  createdAt DateTime   @default(now()) // Fecha de creación
+  updatedAt DateTime   @updatedAt // Se actualiza automáticamente en cada modificación
+
+  enrollments   Enrollment[]
+  attendance    Attendance[]
+  grades        Grade[]
+  taughtCourses Course[]      @relation("TeacherCourses")
+  certificates  Certificate[]
+  userProfile   UserProfile?
 }
 
 model UserProfile {
-  id         String  @id @default(uuid())
-  user       User?    @relation(fields: [userId], references: [id])
-  userId     String  @unique
-  phone      String?
-  address    String?
-  birthdate  DateTime?
+  id        String    @id @default(uuid())
+  user      User?     @relation(fields: [userId], references: [id])
+  userId    String    @unique
+  phone     String?
+  address   String?
+  birthdate DateTime?
 }
 
-
 model Course {
-  id             String        @id @default(uuid())
-  name           String
-  teacher        User          @relation(fields: [teacherId], references: [id], name: "TeacherCourses")
-  teacherId      String
-  students       Enrollment[]  // Estudiantes inscritos en el curso
-  attendance     Attendance[]  // Asistencias registradas en el curso
-  grades         Grade[]       // Calificaciones asignadas en el curso
-  certificates   Certificate[] // Certificados emitidos para este curso
+  id           String        @id @default(uuid())
+  name         String
+  teacher      User          @relation(fields: [teacherId], references: [id], name: "TeacherCourses")
+  teacherId    String
+  students     Enrollment[] // Estudiantes inscritos en el curso
+  attendance   Attendance[] // Asistencias registradas en el curso
+  grades       Grade[] // Calificaciones asignadas en el curso
+  certificates Certificate[] // Certificados emitidos para este curso
 }
 
 model Enrollment {
-  id             String  @id @default(uuid())
-  user           User    @relation(fields: [userId], references: [id])
-  userId         String
-  course         Course  @relation(fields: [courseId], references: [id])
-  courseId       String
-  status         String  // Estado de la inscripción (e.g., "active", "completed")
+  id       String @id @default(uuid())
+  user     User   @relation(fields: [userId], references: [id])
+  userId   String
+  course   Course @relation(fields: [courseId], references: [id])
+  courseId String
+  status   String // Estado de la inscripción (e.g., "active", "completed")
 }
 
 model Attendance {
-  id             String   @id @default(uuid())
-  user           User     @relation(fields: [userId], references: [id])
-  userId         String
-  course         Course   @relation(fields: [courseId], references: [id])
-  courseId       String
-  date           DateTime
-  present        Boolean  // Indica si el usuario estuvo presente
+  id       String   @id @default(uuid())
+  user     User     @relation(fields: [userId], references: [id])
+  userId   String
+  course   Course   @relation(fields: [courseId], references: [id])
+  courseId String
+  date     DateTime
+  present  Boolean // Indica si el usuario estuvo presente
 }
 
 model Grade {
-  id             String  @id @default(uuid())
-  user           User    @relation(fields: [userId], references: [id])
-  userId         String
-  course         Course  @relation(fields: [courseId], references: [id])
-  courseId       String
-  score          Float   // Calificación del usuario en el curso
+  id       String @id @default(uuid())
+  user     User   @relation(fields: [userId], references: [id])
+  userId   String
+  course   Course @relation(fields: [courseId], references: [id])
+  courseId String
+  score    Float // Calificación del usuario en el curso
 }
 
 model Certificate {
-  id             String  @id @default(uuid())
-  user           User    @relation(fields: [userId], references: [id])
-  userId         String
-  course         Course  @relation(fields: [courseId], references: [id])
-  courseId       String
-  url            String  // URL del PDF generado
+  id       String @id @default(uuid())
+  user     User   @relation(fields: [userId], references: [id])
+  userId   String
+  course   Course @relation(fields: [courseId], references: [id])
+  courseId String
+  url      String // URL del PDF generado
+}
+
+model AuditLog {
+  id            String   @id @default(uuid())
+  tableName     String // Nombre de la tabla afectada
+  recordId      String // ID del registro modificado
+  action        Action // Tipo de acción (CREATE, UPDATE, DELETE)
+  changedFields Json? // Campos modificados en JSON
+  oldValues     Json? // Valores anteriores en JSON (opcional)
+  newValues     Json? // Nuevos valores en JSON
+  performedBy   String // ID del usuario que realizó la acción
+  performedAt   DateTime @default(now()) // Fecha y hora de la acción
+}
+
+enum Action {
+  CREATE
+  UPDATE
+  DELETE
 }
 
 enum Role {
@@ -91,3 +114,8 @@ enum Role {
   TEACHER
 }
 
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
