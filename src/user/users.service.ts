@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import * as bcrypt from 'bcrypt';
@@ -82,8 +82,41 @@ export class UsersService {
     });
   }
 
-  update(id: number, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} user`;
+  async update(id: string, updateUserDto: UpdateUserDto) {
+    const { name, role, userProfile } = updateUserDto;
+
+    // Verificar si el usuario existe
+    const existingUser = await this.prisma.user.findUnique({
+      where: { id },
+      include: { userProfile: true },
+    });
+
+    if (!existingUser) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+
+    // Construcción del objeto de actualización
+    const userData: any = {};
+    if (name) userData.name = name;
+    if (role) userData.role = role;
+
+    // Actualizar usuario si hay cambios
+    if (Object.keys(userData).length > 0) {
+      await this.prisma.user.update({
+        where: { id },
+        data: userData,
+      });
+    }
+
+    await this.prisma.userProfile.upsert({
+      where: { userId: id },
+      update: { ...userProfile }, 
+      create: { 
+        user: { connect: { id } }, 
+        ...userProfile
+      },
+    });
+    return { message: 'Usuario actualizado correctamente' };
   }
 
   remove(id: number) {

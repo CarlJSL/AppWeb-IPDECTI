@@ -28,12 +28,17 @@ model User {
 }
 
 model UserProfile {
-  id        String    @id @default(uuid())
-  user      User?     @relation(fields: [userId], references: [id])
-  userId    String    @unique
-  phone     String?
-  address   String?
-  birthdate DateTime?
+  id             String    @id @default(uuid())
+  user           User?     @relation(fields: [userId], references: [id])
+  userId         String    @unique
+  firstName      String?
+  SecondName     String?
+  firstLastName  String?
+  secondLastName String?
+  dni            String?
+  phone          String?
+  address        String?
+  birthdate      DateTime?
 }
 
 model Course {
