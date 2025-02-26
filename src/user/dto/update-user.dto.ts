@@ -46,5 +46,5 @@ export class UpdateUserDto {
   
     @IsOptional()
     userProfile?: UpdateUserProfileDto; // Cambiar "profile" por "userProfile"
-  }
+}
   

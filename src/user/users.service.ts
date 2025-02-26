@@ -83,9 +83,11 @@ export class UsersService {
   }
 
   async update(id: string, updateUserDto: UpdateUserDto) {
+    if (!Object.keys(updateUserDto).length) {
+      throw new BadRequestException('Debe proporcionar al menos un campo para actualizar');
+    }
     const { name, role, userProfile } = updateUserDto;
 
-    // Verificar si el usuario existe
     const existingUser = await this.prisma.user.findUnique({
       where: { id },
       include: { userProfile: true },
