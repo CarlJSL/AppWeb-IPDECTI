@@ -42,14 +42,25 @@ model UserProfile {
 }
 
 model Course {
-  id           String        @id @default(uuid())
-  name         String
-  teacher      User          @relation(fields: [teacherId], references: [id], name: "TeacherCourses")
-  teacherId    String
-  students     Enrollment[] // Estudiantes inscritos en el curso
-  attendance   Attendance[] // Asistencias registradas en el curso
-  grades       Grade[] // Calificaciones asignadas en el curso
-  certificates Certificate[] // Certificados emitidos para este curso
+  id              String        @id @default(uuid())
+  name            String
+  teacher         User          @relation(fields: [teacherId], references: [id], name: "TeacherCourses")
+  teacherId       String
+  durationMonths  Int // Duracion en Meses
+  students        Enrollment[] // Estudiantes inscritos en el curso
+  attendance      Attendance[] // Asistencias registradas en el curso
+  grades          Grade[] // Calificaciones asignadas en el curso
+  certificates    Certificate[] // Certificados emitidos para este curso
+  academicEvent   AcademicEvent @relation(fields: [academicEventId], references: [id])
+  academicEventId String
+}
+
+model AcademicEvent {
+  id         String   @id @default(uuid())
+  name       String   @unique // Curso, Seminario, Diplomado, etc.
+  duration   String // Duración del evento (ejemplo: "1 mes, 6 meses, 1 año")
+  evaluation String // "Por mes", "No hay evaluación", etc.
+  courses    Course[] // Relación con los cursos asociados a este evento académico
 }
 
 model Enrollment {

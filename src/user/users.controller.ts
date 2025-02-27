@@ -22,7 +22,6 @@ import { Role } from '@prisma/client';
 import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 import { OrderPaginationDto } from './dto/user-paginacion.dto';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
-import { isEmail } from 'class-validator';
 import { DeleteUserDto } from './dto/delete-user.dto';
 
 @UseGuards(AuthGuard, RolesGuard)
