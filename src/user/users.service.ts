@@ -1,9 +1,18 @@
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  HttpStatus,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { OrderPaginationDto } from './dto/user-paginacion.dto';
+import { _ } from 'lodash';
+import { DeleteUserDto } from './dto/delete-user.dto';
+import { UserStatusEnum, UserStatusList } from './enum/user-status.enum';
 
 @Injectable()
 export class UsersService {
@@ -45,7 +54,7 @@ export class UsersService {
       },
     });
 
-    const lastPage = Math.ceil( totalNumUser / limit);
+    const lastPage = Math.ceil(totalNumUser / limit);
 
     if (currentPage > lastPage || currentPage < 1) {
       return {
@@ -68,12 +77,11 @@ export class UsersService {
         },
       }),
       meta: {
-        total: totalNumUser, 
-        page: currentPage, 
-        lastPage, 
+        total: totalNumUser,
+        page: currentPage,
+        lastPage,
       },
     };
-
   }
 
   async findOneByEmail(email: string) {
@@ -82,12 +90,16 @@ export class UsersService {
     });
   }
 
-  async update(id: string, updateUserDto: UpdateUserDto) {
-    if (!Object.keys(updateUserDto).length) {
-      throw new BadRequestException('Debe proporcionar al menos un campo para actualizar');
+  async update(id: string, updateUserDto: Partial<UpdateUserDto>) {
+    if (_.isEmpty(updateUserDto)) {
+      throw new BadRequestException(
+        'Debe proporcionar al menos un campo para actualizar',
+      );
     }
+
     const { name, role, userProfile } = updateUserDto;
 
+    // Obtener el usuario existente con su perfil
     const existingUser = await this.prisma.user.findUnique({
       where: { id },
       include: { userProfile: true },
@@ -97,31 +109,73 @@ export class UsersService {
       throw new NotFoundException('Usuario no encontrado');
     }
 
-    // Construcción del objeto de actualización
-    const userData: any = {};
-    if (name) userData.name = name;
-    if (role) userData.role = role;
+    // Detectar cambios en los campos del usuario
+    const userChanges = _.pickBy(
+      { name, role },
+      (value, key) => !_.isEqual(value, existingUser[key]),
+    );
 
-    // Actualizar usuario si hay cambios
-    if (Object.keys(userData).length > 0) {
+    // Detectar cambios en el perfil del usuario
+    const profileChanges = userProfile
+      ? _.pickBy(
+          userProfile,
+          (value, key) => !_.isEqual(value, existingUser.userProfile?.[key]),
+        )
+      : {};
+
+    // Si no hay cambios, lanzar una excepción
+    if (_.isEmpty(userChanges) && _.isEmpty(profileChanges)) {
+      throw new BadRequestException(
+        'No se detectaron cambios en los datos proporcionados',
+      );
+    }
+
+    // Actualizar el usuario si hay cambios
+    if (!_.isEmpty(userChanges)) {
       await this.prisma.user.update({
         where: { id },
-        data: userData,
+        data: userChanges,
       });
     }
 
-    await this.prisma.userProfile.upsert({
-      where: { userId: id },
-      update: { ...userProfile }, 
-      create: { 
-        user: { connect: { id } }, 
-        ...userProfile
-      },
-    });
+    // Actualizar o crear el perfil del usuario si hay cambios
+    if (!_.isEmpty(profileChanges)) {
+      await this.prisma.userProfile.upsert({
+        where: { userId: id },
+        update: profileChanges,
+        create: {
+          user: { connect: { id } },
+          ...profileChanges,
+        },
+      });
+    }
+
     return { message: 'Usuario actualizado correctamente' };
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} user`;
+  async remove(deleteUserDto: string) {
+    const emailChangeState = deleteUserDto;
+    const user = await this.findOneByEmail(emailChangeState);
+    if (!user) {
+      throw new BadRequestException('Usuario no encontrado');
+    }
+
+    if (user.status === UserStatusEnum.INACTIVE) {
+      throw new BadRequestException('El usuario ya está inactivo');
+    }
+    const userDelete = await this.prisma.user.update({
+      where: { email: emailChangeState },
+      data: { status: UserStatusEnum.INACTIVE },
+    });
+
+    const { id: _, email, name, role } = userDelete;
+    const selectedData = { email, name, role };
+
+    return {
+      message: 'Usuario eliminado correctamente',
+      data: selectedData,
+      state: HttpStatus.OK,
+    };
   }
+  
 }

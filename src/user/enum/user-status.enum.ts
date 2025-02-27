@@ -5,3 +5,10 @@ export const UserStatusList= [
     UserStatus.INACTIVE,
     UserStatus.SUSPENDED
 ]
+
+export enum UserStatusEnum {
+    ACTIVE = 'ACTIVE',
+    INACTIVE = 'INACTIVE',
+    SUSPENDED = 'SUSPENDED',
+}
+  
