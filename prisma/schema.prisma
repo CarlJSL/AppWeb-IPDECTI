@@ -28,17 +28,16 @@ model User {
 }
 
 model UserProfile {
-  id             String    @id @default(uuid())
-  user           User?     @relation(fields: [userId], references: [id])
-  userId         String    @unique
-  firstName      String?
-  SecondName     String?
-  firstLastName  String?
-  secondLastName String?
-  dni            String?
-  phone          String?
-  address        String?
-  birthdate      DateTime?
+  id            String    @id @default(uuid())
+  user          User?     @relation(fields: [userId], references: [id])
+  userId        String    @unique
+  Names         String?
+  LastNames     String?
+  emailPersonal String?   @unique
+  dni           String?
+  phone         String?
+  address       String?
+  birthdate     DateTime?
 }
 
 model Course {
@@ -64,12 +63,12 @@ model AcademicEvent {
 }
 
 model Enrollment {
-  id       String @id @default(uuid())
-  user     User   @relation(fields: [userId], references: [id])
+  id       String           @id @default(uuid())
+  user     User             @relation(fields: [userId], references: [id])
   userId   String
-  course   Course @relation(fields: [courseId], references: [id])
+  course   Course           @relation(fields: [courseId], references: [id])
   courseId String
-  status   String // Estado de la inscripción (e.g., "active", "completed")
+  status   EnrollmentStatus @default(PENDIENTE) // Estado de la inscripción
 }
 
 model Attendance {
@@ -112,6 +111,13 @@ model AuditLog {
   performedAt   DateTime @default(now()) // Fecha y hora de la acción
 }
 
+enum EnrollmentStatus {
+  ACTIVE
+  COMPLETED
+  PENDIENTE
+  VENCIDA
+}
+
 enum Action {
   CREATE
   UPDATE
@@ -122,6 +128,7 @@ enum Role {
   ADMIN
   STUDENT
   TEACHER
+  POSTULANT
 }
 
 enum UserStatus {

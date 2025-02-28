@@ -22,7 +22,7 @@ export class CourseService {
       data: {
         name,
         teacherId,
-        durationMonths: durationMonths.toString(),
+        durationMonths: durationMonths,
         academicEventId,
       },
     });

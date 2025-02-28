@@ -11,8 +11,7 @@ import * as bcrypt from 'bcrypt';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { OrderPaginationDto } from './dto/user-paginacion.dto';
 import { _ } from 'lodash';
-import { DeleteUserDto } from './dto/delete-user.dto';
-import { UserStatusEnum, UserStatusList } from './enum/user-status.enum';
+import { UserStatusEnum, UserStatusList } from '../enums/user-status.enum';
 
 @Injectable()
 export class UsersService {
@@ -87,6 +86,12 @@ export class UsersService {
   async findOneByEmail(email: string) {
     return await this.prisma.user.findUnique({
       where: { email: email },
+    });
+  }
+
+  async findOneByEmailPersonal(email: string) {
+    return await this.prisma.userProfile.findUnique({
+      where: { emailPersonal: email },
     });
   }
 
@@ -177,5 +182,24 @@ export class UsersService {
       state: HttpStatus.OK,
     };
   }
-  
+
+  async createaAuto(createUserDto: CreateUserDto) {
+    const data = createUserDto;
+    const createdBy = 'SYSTEM';
+    const hashedPassword = await bcrypt.hash(data.password, 10);
+
+    const user = await this.prisma.user.create({
+      data: {
+        name: data.name,
+        email: data.email,
+        password: hashedPassword,
+        role: data.role,
+        createdBy, // Usuario que creó el registro
+        updatedBy: createdBy,
+        status: UserStatusEnum.SUSPENDED,
+      },
+    });
+
+    return user;
+  }
 }
