@@ -44,7 +44,10 @@ export class AuthService {
         email: user.email,
         role: user.role as Role,
       };
-      const token = await this.jwtService.signAsync(interfacePayload);
+
+      const payload = { data: { ...interfacePayload } };
+
+      const token = await this.jwtService.signAsync(payload);
 
       return { token, message: 'Login successful' };
     } catch (error) {
