@@ -15,7 +15,7 @@ export class UserProfileService {
     const data = createUserProfileDto;
 
     const id = data.userId;
-    const user = await this.usersService.finOneId(id);
+    const user = await this.usersService.findOneId(id);
     if (!user) {
       throw new BadRequestException('Usuario no encontrado');
     }

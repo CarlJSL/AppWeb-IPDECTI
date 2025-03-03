@@ -20,7 +20,7 @@ import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { Role } from '@prisma/client';
 import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
-import { OrderPaginationDto } from './dto/user-paginacion.dto';
+import { UserPaginationDto } from './dto/user-paginacion.dto';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { DeleteUserDto } from './dto/delete-user.dto';
 
@@ -40,7 +40,7 @@ export class UsersController {
   @Get(':status')
   findAll(
     @Query() paginationDto: PaginationDto,
-    @Param() statusDto: OrderPaginationDto,
+    @Param() statusDto: UserPaginationDto,
   ) {
     const orderPaginationDto = {
       ...paginationDto,

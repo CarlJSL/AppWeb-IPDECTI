@@ -52,6 +52,7 @@ model Course {
   certificates    Certificate[] // Certificados emitidos para este curso
   academicEvent   AcademicEvent @relation(fields: [academicEventId], references: [id])
   academicEventId String
+  status          CourseStatus  @default(ACTIVE) 
 }
 
 model AcademicEvent {
@@ -109,6 +110,13 @@ model AuditLog {
   newValues     Json? // Nuevos valores en JSON
   performedBy   String // ID del usuario que realizó la acción
   performedAt   DateTime @default(now()) // Fecha y hora de la acción
+}
+
+enum CourseStatus {
+  ACTIVE
+  INACTIVE
+  COMPLETED
+  CANCELED
 }
 
 enum EnrollmentStatus {

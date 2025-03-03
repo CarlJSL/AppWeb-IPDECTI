@@ -9,9 +9,10 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { OrderPaginationDto } from './dto/user-paginacion.dto';
+import { UserPaginationDto } from './dto/user-paginacion.dto';
 import { _ } from 'lodash';
 import { UserStatusEnum, UserStatusList } from '../enums/user-status.enum';
+import { paginate } from 'src/common/helpers/helper.pagination';
 
 @Injectable()
 export class UsersService {
@@ -42,48 +43,17 @@ export class UsersService {
     return { message: 'Usuario registrado exitosamente' };
   }
 
-  async findAll(userPaginationDto: OrderPaginationDto) {
-    const statusUser = userPaginationDto.status;
-    const currentPage = userPaginationDto.page;
-    const limit = userPaginationDto.limit;
-
-    const totalNumUser = await this.prisma.user.count({
-      where: {
-        status: statusUser,
-      },
+  async findAll(userPaginationDto: UserPaginationDto) {
+    return await paginate({
+      prisma: this.prisma,
+      model: this.prisma.user,
+      page: userPaginationDto.page,
+      limit: userPaginationDto.limit,
+      where: { status: userPaginationDto.status },
     });
-
-    const lastPage = Math.ceil(totalNumUser / limit);
-
-    if (currentPage > lastPage || currentPage < 1) {
-      return {
-        data: [],
-        meta: {
-          total: totalNumUser,
-          page: currentPage,
-          lastPage,
-          message: 'No hay datos disponibles para esta página.',
-        },
-      };
-    }
-
-    return {
-      data: await this.prisma.user.findMany({
-        skip: (currentPage - 1) * limit,
-        take: limit,
-        where: {
-          status: statusUser,
-        },
-      }),
-      meta: {
-        total: totalNumUser,
-        page: currentPage,
-        lastPage,
-      },
-    };
   }
 
-  async finOneId(id: string) {
+  async findOneId(id: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: id },
     });

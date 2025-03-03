@@ -3,12 +3,16 @@ import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Role } from 'src/enums/roles.enum';
-
-
+import { UsersService } from 'src/user/users.service';
+import { CoursePaginationDto } from './dto/paginacion-course';
+import { paginate } from 'src/common/helpers/helper.pagination';
 
 @Injectable()
 export class CourseService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly userService: UsersService,
+  ) {}
 
   async create(createCourseDto: CreateCourseDto) {
     const { name, teacherId, durationMonths, academicEventId } =
@@ -28,19 +32,15 @@ export class CourseService {
     });
 
     return {
-      message: 'Curso creado exitosamente',
       data: course,
-      state: HttpStatus.CREATED,
+      message: 'Curso creado exitosamente',
+      status: HttpStatus.CREATED,
     };
   }
 
   private async validateTeacherExists(teacherId: string) {
-    const teacher = await this.prisma.user.findUnique({
-      where: { id: teacherId, 
-        role: Role.TEACHER
-      },
-    });
-    if (!teacher) {
+    const teacher = await this.userService.findOneId(teacherId);
+    if (teacher.role !== Role.TEACHER) {
       throw new NotFoundException('El profesor no existe');
     }
   }
@@ -54,8 +54,14 @@ export class CourseService {
     }
   }
 
-  findAll() {
-    return `This action returns all course`;
+  async findAll(coursePaginationDto: CoursePaginationDto) {
+    return await paginate({
+      prisma: this.prisma,
+      model: this.prisma.course,
+      page: coursePaginationDto.page,
+      limit: coursePaginationDto.limit,
+      where: { status: coursePaginationDto.status },
+    });
   }
 
   findOne(id: number) {
