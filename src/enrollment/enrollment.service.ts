@@ -6,9 +6,9 @@ import {
 } from '@nestjs/common';
 import { CreateEnrollmentDto } from './dto/create-enrollment.dto';
 import { UpdateEnrollmentDto } from './dto/update-enrollment.dto';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from 'src/common/prisma/prisma.service';
 import { UsersService } from 'src/user/users.service';
-import { Role } from 'src/enums/roles.enum';
+import { Role } from 'src/common/enums/roles.enum';
 import { CreateUserDto } from 'src/user/dto/create-user.dto';
 import { UserProfileService } from 'src/user-profile/user-profile.service';
 import { last } from 'rxjs';

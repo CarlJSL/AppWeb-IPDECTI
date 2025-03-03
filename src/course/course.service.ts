@@ -1,8 +1,8 @@
 import { HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { Role } from 'src/enums/roles.enum';
+import { PrismaService } from 'src/common/prisma/prisma.service';
+import { Role } from 'src/common/enums/roles.enum';
 import { UsersService } from 'src/user/users.service';
 import { CoursePaginationDto } from './dto/paginacion-course';
 import { paginate } from 'src/common/helpers/helper.pagination';

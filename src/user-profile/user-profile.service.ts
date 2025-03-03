@@ -1,7 +1,7 @@
 import { BadRequestException, HttpStatus, Injectable } from '@nestjs/common';
 import { CreateUserProfileDto } from './dto/create-user-profile.dto';
 import { UpdateUserProfileDto } from './dto/update-user-profile.dto';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from 'src/common/prisma/prisma.service';
 import { UsersService } from 'src/user/users.service';
 
 @Injectable()

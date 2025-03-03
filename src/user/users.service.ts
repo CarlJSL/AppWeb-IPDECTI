@@ -8,10 +8,10 @@ import {
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import * as bcrypt from 'bcrypt';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from 'src/common/prisma/prisma.service';
 import { UserPaginationDto } from './dto/user-paginacion.dto';
 import { _ } from 'lodash';
-import { UserStatusEnum, UserStatusList } from '../enums/user-status.enum';
+import { UserStatusEnum, UserStatusList } from '../common/enums/user-status.enum';
 import { paginate } from 'src/common/helpers/helper.pagination';
 
 @Injectable()
