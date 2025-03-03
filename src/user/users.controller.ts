@@ -51,9 +51,9 @@ export class UsersController {
   }
 
   @Roles(Role.ADMIN, Role.TEACHER)
-  @Get(':email')
+  @Get('email/:email')
   findOneByEmail(@Param('email') id: string) {
-    return this.usersService.findOneByEmail(id);
+    return this.usersService.findOneByEmailData(id);
   }
 
   @Roles(Role.ADMIN)

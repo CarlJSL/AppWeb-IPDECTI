@@ -7,7 +7,7 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @HttpCode(HttpStatus.OK)
-  @Post()
+  @Post('login')
   create(@Body() loginAuthDto: LoginDto) {
     return this.authService.login(loginAuthDto);
   }

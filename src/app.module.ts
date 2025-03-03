@@ -4,9 +4,17 @@ import { AuthModule } from './auth/auth.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { CourseModule } from './course/course.module';
 import { EnrollmentModule } from './enrollment/enrollment.module';
+import { UserProfileModule } from './user-profile/user-profile.module';
 
 @Module({
-  imports: [UsersModule, AuthModule, PrismaModule, CourseModule, EnrollmentModule],
+  imports: [
+    UsersModule,
+    AuthModule,
+    PrismaModule,
+    CourseModule,
+    EnrollmentModule,
+    UserProfileModule,
+  ],
   controllers: [],
   providers: [],
 })

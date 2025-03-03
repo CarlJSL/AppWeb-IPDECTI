@@ -83,16 +83,32 @@ export class UsersService {
     };
   }
 
-  async findOneByEmail(email: string) {
-    return await this.prisma.user.findUnique({
-      where: { email: email },
+  async finOneId(id: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: id },
     });
+
+    const userProfile = await this.findUserProfile(user.id);
+
+    return { ...user, userProfile };
   }
 
-  async findOneByEmailPersonal(email: string) {
-    return await this.prisma.userProfile.findUnique({
-      where: { emailPersonal: email },
+  async findOneByEmailData(email: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { email: email },
     });
+
+    const userProfile = await this.findUserProfile(user.id);
+
+    return { ...user, userProfile };
+  }
+
+  async findOneByEmail(email: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { email: email },
+    });
+
+    return user;
   }
 
   async update(id: string, updateUserDto: Partial<UpdateUserDto>) {
@@ -194,12 +210,18 @@ export class UsersService {
         email: data.email,
         password: hashedPassword,
         role: data.role,
-        createdBy, // Usuario que creó el registro
+        createdBy: createdBy, // Usuario que creó el registro
         updatedBy: createdBy,
         status: UserStatusEnum.SUSPENDED,
       },
     });
 
     return user;
+  }
+
+  async findUserProfile(id: string) {
+    return await this.prisma.userProfile.findUnique({
+      where: { userId: id },
+    });
   }
 }
