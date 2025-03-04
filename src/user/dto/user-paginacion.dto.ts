@@ -8,5 +8,5 @@ export class UserPaginationDto extends PaginationDto{
    @IsEnum(UserStatusList,{
     message: `Valid status are ${UserStatusList}`
    })
-   status: UserStatus; 
+   status?: UserStatus; 
 }

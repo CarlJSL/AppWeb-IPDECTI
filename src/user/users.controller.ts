@@ -37,7 +37,7 @@ export class UsersController {
   }
 
   @Roles(Role.ADMIN)
-  @Get(':status')
+  @Get(':status?')
   findAll(
     @Query() paginationDto: PaginationDto,
     @Param() statusDto: UserPaginationDto,

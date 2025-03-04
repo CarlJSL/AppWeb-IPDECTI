@@ -12,6 +12,7 @@ import { Role } from 'src/common/enums/roles.enum';
 import { CreateUserDto } from 'src/user/dto/create-user.dto';
 import { UserProfileService } from 'src/user-profile/user-profile.service';
 import { last } from 'rxjs';
+import { CourseService } from 'src/course/course.service';
 
 @Injectable()
 export class EnrollmentService {
@@ -19,6 +20,7 @@ export class EnrollmentService {
     private readonly prisma: PrismaService,
     private readonly userService: UsersService,
     private readonly userProfileService: UserProfileService,
+    private readonly courseService: CourseService,
   ) {}
 
   async create(createEnrollmentDto: CreateEnrollmentDto) {
@@ -37,6 +39,11 @@ export class EnrollmentService {
     const institutionalEmail = `${emailBase}@ipdecti.com`;
 
     let user = await this.userService.findOneByEmail(institutionalEmail);
+    const course = await this.courseService.findOne(courseId);
+
+    if (!course) {
+      throw new NotFoundException('El curso no existe');
+    }
 
     if (!user) {
       const createUser: CreateUserDto = {

@@ -30,7 +30,7 @@ export class CourseController {
     return this.courseService.create(createCourseDto);
   }
 
-  @Get(':status')
+  @Get(':status?')
   findAll(
     @Query() paginationDto: PaginationDto,
     @Param() statusDto: CoursePaginationDto,
@@ -44,7 +44,7 @@ export class CourseController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.courseService.findOne(+id);
+    return this.courseService.findOne(id);
   }
 
   @Patch(':id')

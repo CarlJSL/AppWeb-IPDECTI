@@ -64,8 +64,10 @@ export class CourseService {
     });
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} course`;
+  findOne(id: string) {
+    return this.prisma.course.findUnique({
+      where: { id: id, status: 'ACTIVE' },
+    });
   }
 
   update(id: number, updateCourseDto: UpdateCourseDto) {
