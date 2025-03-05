@@ -20,9 +20,9 @@ export class UserProfileService {
       throw new BadRequestException('Usuario no encontrado');
     }
 
-    const existingProfile = await this.findOne(id);
+    const existingProfile = await this.findOneComprobar(id, data.email);
     if (existingProfile) {
-      throw new BadRequestException('El usuario ya tiene un perfil');
+      throw new BadRequestException('El usuario ya tiene un perfil o el email ya está en uso');
     }
 
     const userProfile = await this.prisma.userProfile.create({
@@ -54,9 +54,23 @@ export class UserProfileService {
 
   async findOne(id: string) {
     return await this.prisma.userProfile.findUnique({
-      where: { userId: id },
+      where: {
+        userId: id,
+      },
     });
   }
+
+  private async findOneComprobar(id: string, email: string) {
+    return await this.prisma.userProfile.findFirst({
+      where: {
+        OR: [
+          { userId: id },
+          { emailPersonal: email }
+        ]
+      },
+    });
+  }
+  
 
   update(id: number, updateUserProfileDto: UpdateUserProfileDto) {
     return `This action updates a #${id} userProfile`;

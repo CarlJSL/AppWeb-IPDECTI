@@ -11,8 +11,13 @@ import * as bcrypt from 'bcrypt';
 import { PrismaService } from 'src/common/prisma/prisma.service';
 import { UserPaginationDto } from './dto/user-paginacion.dto';
 import { _ } from 'lodash';
-import { UserStatusEnum, UserStatusList } from '../common/enums/user-status.enum';
+import {
+  UserStatusEnum,
+  UserStatusList,
+} from '../common/enums/user-status.enum';
 import { paginate } from 'src/common/helpers/helper.pagination';
+import { detectChanges } from 'src/common/helpers/helper.detectChanges';
+import { User } from '@prisma/client';
 
 @Injectable()
 export class UsersService {
@@ -56,21 +61,23 @@ export class UsersService {
   async findOneId(id: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: id },
+      include: { userProfile: true },
     });
-
-    const userProfile = await this.findUserProfile(user.id);
-
-    return { ...user, userProfile };
+    return user;
   }
 
   async findOneByEmailData(email: string) {
-    const user = await this.prisma.user.findUnique({
+    const userdata = await this.prisma.user.findUnique({
       where: { email: email },
+      include: { userProfile: true },
     });
 
-    const userProfile = await this.findUserProfile(user.id);
+    if (!userdata) {
+      throw new NotFoundException(`Usuario con " ${email} " no encontrado`);
+      status: HttpStatus.NOT_FOUND;
+    }
 
-    return { ...user, userProfile };
+    return userdata;
   }
 
   async findOneByEmail(email: string) {
@@ -82,64 +89,43 @@ export class UsersService {
   }
 
   async update(id: string, updateUserDto: Partial<UpdateUserDto>) {
-    if (_.isEmpty(updateUserDto)) {
+    if (!updateUserDto || Object.keys(updateUserDto).length === 0) {
       throw new BadRequestException(
         'Debe proporcionar al menos un campo para actualizar',
       );
     }
 
-    const { name, role, userProfile } = updateUserDto;
+    const { name, role } = updateUserDto;
 
     // Obtener el usuario existente con su perfil
     const existingUser = await this.prisma.user.findUnique({
       where: { id },
-      include: { userProfile: true },
     });
 
     if (!existingUser) {
       throw new NotFoundException('Usuario no encontrado');
     }
+    // Detectar cambios en los datos
+    const userChanges = detectChanges(existingUser, { name, role });
 
-    // Detectar cambios en los campos del usuario
-    const userChanges = _.pickBy(
-      { name, role },
-      (value, key) => !_.isEqual(value, existingUser[key]),
-    );
-
-    // Detectar cambios en el perfil del usuario
-    const profileChanges = userProfile
-      ? _.pickBy(
-          userProfile,
-          (value, key) => !_.isEqual(value, existingUser.userProfile?.[key]),
-        )
-      : {};
-
-    // Si no hay cambios, lanzar una excepción
-    if (_.isEmpty(userChanges) && _.isEmpty(profileChanges)) {
+    if (Object.keys(userChanges).length === 0) {
       throw new BadRequestException(
         'No se detectaron cambios en los datos proporcionados',
       );
     }
 
-    // Actualizar el usuario si hay cambios
-    if (!_.isEmpty(userChanges)) {
-      await this.prisma.user.update({
-        where: { id },
-        data: userChanges,
-      });
-    }
+    //  Transacción para asegurar consistencia
+    await this.prisma.$transaction(async (prisma) => {
+      // Actualizar usuario si hay cambios
+      if (Object.keys(userChanges).length > 0) {
+        await prisma.user.update({
+          where: { id },
+          data: userChanges,
+        });
+      }
 
-    // Actualizar o crear el perfil del usuario si hay cambios
-    if (!_.isEmpty(profileChanges)) {
-      await this.prisma.userProfile.upsert({
-        where: { userId: id },
-        update: profileChanges,
-        create: {
-          user: { connect: { id } },
-          ...profileChanges,
-        },
-      });
-    }
+      // Actualizar perfil si hay cambios
+    });
 
     return { message: 'Usuario actualizado correctamente' };
   }

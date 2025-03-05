@@ -1,4 +1,9 @@
-import { HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  HttpStatus,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
 import { PrismaService } from 'src/common/prisma/prisma.service';
@@ -6,6 +11,7 @@ import { Role } from 'src/common/enums/roles.enum';
 import { UsersService } from 'src/user/users.service';
 import { CoursePaginationDto } from './dto/paginacion-course';
 import { paginate } from 'src/common/helpers/helper.pagination';
+import { detectChanges } from 'src/common/helpers/helper.detectChanges';
 
 @Injectable()
 export class CourseService {
@@ -70,8 +76,40 @@ export class CourseService {
     });
   }
 
-  update(id: number, updateCourseDto: UpdateCourseDto) {
-    return `This action updates a #${id} course`;
+  async update(id: string, updateCourseDto: Partial<UpdateCourseDto>) {
+    if (!updateCourseDto || Object.keys(updateCourseDto).length === 0) {
+      throw new BadRequestException(
+        'Debe proporcionar al menos un campo para actualizar',
+      );
+    }
+
+    const { teacherId, academicEventId } = updateCourseDto;
+
+    if (teacherId) await this.validateTeacherExists(teacherId);
+    if (academicEventId)
+      await this.validateAcademicEventExists(academicEventId);
+
+    const existingCourse = await this.prisma.course.findUnique({
+      where: { id },
+    });
+
+    if (!existingCourse) throw new NotFoundException('Curso no encontrado');
+
+    // Usar el helper detectChanges
+    const courseChanges = detectChanges(existingCourse, updateCourseDto);
+
+    if (Object.keys(courseChanges).length === 0) {
+      throw new BadRequestException(
+        'No se detectaron cambios en los datos proporcionados',
+      );
+    }
+
+    await this.prisma.course.update({
+      where: { id },
+      data: courseChanges,
+    });
+
+    return { message: 'Curso actualizado correctamente' };
   }
 
   remove(id: number) {
