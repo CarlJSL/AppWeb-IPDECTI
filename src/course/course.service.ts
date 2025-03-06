@@ -109,7 +109,10 @@ export class CourseService {
       data: courseChanges,
     });
 
-    return { message: 'Curso actualizado correctamente' };
+    return {
+      message: 'Curso actualizado correctamente',
+      status: HttpStatus.OK,
+    };
   }
 
   remove(id: number) {

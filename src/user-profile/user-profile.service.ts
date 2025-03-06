@@ -1,8 +1,14 @@
-import { BadRequestException, HttpStatus, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  HttpStatus,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateUserProfileDto } from './dto/create-user-profile.dto';
 import { UpdateUserProfileDto } from './dto/update-user-profile.dto';
 import { PrismaService } from 'src/common/prisma/prisma.service';
 import { UsersService } from 'src/user/users.service';
+import { detectChanges } from 'src/common/helpers/helper.detectChanges';
 
 @Injectable()
 export class UserProfileService {
@@ -22,7 +28,9 @@ export class UserProfileService {
 
     const existingProfile = await this.findOneComprobar(id, data.email);
     if (existingProfile) {
-      throw new BadRequestException('El usuario ya tiene un perfil o el email ya está en uso');
+      throw new BadRequestException(
+        'El usuario ya tiene un perfil o el email ya está en uso',
+      );
     }
 
     const userProfile = await this.prisma.userProfile.create({
@@ -32,8 +40,8 @@ export class UserProfileService {
             id: id,
           },
         },
-        Names: data.names,
-        LastNames: data.lastNames,
+        names: data.names,
+        lastNames: data.lastNames,
         address: data.address,
         phone: data.phone,
         dni: data.dni,
@@ -63,16 +71,41 @@ export class UserProfileService {
   private async findOneComprobar(id: string, email: string) {
     return await this.prisma.userProfile.findFirst({
       where: {
-        OR: [
-          { userId: id },
-          { emailPersonal: email }
-        ]
+        OR: [{ userId: id }, { emailPersonal: email }],
       },
     });
   }
-  
 
-  update(id: number, updateUserProfileDto: UpdateUserProfileDto) {
-    return `This action updates a #${id} userProfile`;
+  async update(
+    id: string,
+    updateUserProfileDto: Partial<UpdateUserProfileDto>,
+  ) {
+    const existingProfile = await this.prisma.userProfile.findUnique({
+      where: { id: id },
+    });
+
+    if (!existingProfile) throw new NotFoundException('Perfil no encontrado');
+
+    if (!updateUserProfileDto || Object.keys(updateUserProfileDto).length === 0)
+      throw new BadRequestException(
+        'Debe proporcionar al menos un campo para actualizar',
+      );
+
+    const profileChanges = detectChanges(existingProfile, updateUserProfileDto);
+
+    if (Object.keys(profileChanges).length === 0)
+      throw new BadRequestException(
+        'No se ha proporcionado datos para actualizar',
+      );
+
+    await this.prisma.userProfile.update({
+      where: { id },
+      data: profileChanges,
+    });
+
+    return {
+      message: 'Perfil actualizado correctamente',
+      status: HttpStatus.OK,
+    };
   }
 }

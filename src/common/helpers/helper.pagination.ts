@@ -6,9 +6,10 @@ interface PaginationParams<T> {
   page: number;
   limit: number;
   where?: T; // Filtros opcionales
+  select?: Record<string, boolean>; 
 }
 
-export async function paginate<T>({ prisma, model, page, limit, where }: PaginationParams<T>) {
+export async function paginate<T>({ prisma, model, page, limit, where,select }: PaginationParams<T>) {
   const total = await model.count({ where });
 
   const lastPage = Math.ceil(total / limit);
@@ -28,6 +29,7 @@ export async function paginate<T>({ prisma, model, page, limit, where }: Paginat
     skip: (page - 1) * limit,
     take: limit,
     where,
+    select
   });
 
   return {

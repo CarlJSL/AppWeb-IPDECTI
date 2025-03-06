@@ -55,6 +55,13 @@ export class UsersService {
       page: userPaginationDto.page,
       limit: userPaginationDto.limit,
       where: { status: userPaginationDto.status },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        status: true,
+      },
     });
   }
 
@@ -127,7 +134,10 @@ export class UsersService {
       // Actualizar perfil si hay cambios
     });
 
-    return { message: 'Usuario actualizado correctamente' };
+    return {
+      message: 'Usuario actualizado correctamente',
+      status: HttpStatus.OK,
+    };
   }
 
   async remove(deleteUserDto: string) {

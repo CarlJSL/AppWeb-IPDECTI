@@ -31,8 +31,8 @@ model UserProfile {
   id            String    @id @default(uuid())
   user          User?     @relation(fields: [userId], references: [id])
   userId        String    @unique
-  Names         String?
-  LastNames     String?
+  names         String?
+  lastNames     String?
   emailPersonal String?   @unique
   dni           String?
   phone         String?
