@@ -39,7 +39,7 @@ export class EnrollmentService {
     const institutionalEmail = `${emailBase}@ipdecti.com`;
 
     let user = await this.userService.findOneByEmail(institutionalEmail);
-    const course = await this.courseService.findOne(courseId);
+    const course = await this.courseService.findOneStatusActive(courseId);
 
     if (!course) {
       throw new NotFoundException('El curso no existe');

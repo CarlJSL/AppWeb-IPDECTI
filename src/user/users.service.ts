@@ -161,7 +161,7 @@ export class UsersService {
     return {
       message: 'Usuario eliminado correctamente',
       data: selectedData,
-      state: HttpStatus.OK,
+      status: HttpStatus.OK,
     };
   }
 

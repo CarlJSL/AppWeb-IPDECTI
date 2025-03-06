@@ -8,6 +8,7 @@ import {
   Delete,
   UseGuards,
   Query,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { CourseService } from './course.service';
 import { CreateCourseDto } from './dto/create-course.dto';
@@ -44,7 +45,7 @@ export class CourseController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.courseService.findOne(id);
+    return this.courseService.findOneStatusActive(id);
   }
 
   @Patch(':id')
@@ -53,7 +54,7 @@ export class CourseController {
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.courseService.remove(+id);
+  remove(@Param('id', ParseUUIDPipe) id: string) {
+    return this.courseService.remove(id);
   }
 }

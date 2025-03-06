@@ -70,7 +70,7 @@ export class CourseService {
     });
   }
 
-  findOne(id: string) {
+  findOneStatusActive(id: string) {
     return this.prisma.course.findUnique({
       where: { id: id, status: 'ACTIVE' },
     });
@@ -115,7 +115,40 @@ export class CourseService {
     };
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} course`;
+  async remove(id: string) {
+    const courseNotActive = await this.prisma.course.findFirst({
+      where: { id },
+    });
+    if (!courseNotActive) throw new BadRequestException('Curso no encontrado');
+    if (courseNotActive.status === 'INACTIVE')
+      throw new BadRequestException('El curso ya está inactivo');
+
+    const deleteCourse = await this.prisma.course.update({
+      where: { id },
+      data: { status: 'INACTIVE' },
+      select: {
+        id: true,
+        name: true,
+        teacher: {
+          select: {
+            userProfile: {
+              select: {
+                names: true,
+                lastNames: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const { id: _, name } = deleteCourse;
+    const selectedData = { name };
+
+    return {
+      message: 'Usuario eliminado correctamente',
+      data: deleteCourse,
+      status: HttpStatus.OK,
+    };
   }
 }
