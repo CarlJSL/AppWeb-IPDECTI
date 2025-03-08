@@ -1,14 +1,24 @@
-import { HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  HttpStatus,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { Role } from 'src/enums/roles.enum';
-
-
+import { PrismaService } from 'src/common/prisma/prisma.service';
+import { Role } from 'src/common/enums/roles.enum';
+import { UsersService } from 'src/user/users.service';
+import { CoursePaginationDto } from './dto/paginacion-course';
+import { paginate } from 'src/common/helpers/helper.pagination';
+import { detectChanges } from 'src/common/helpers/helper.detectChanges';
 
 @Injectable()
 export class CourseService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly userService: UsersService,
+  ) {}
 
   async create(createCourseDto: CreateCourseDto) {
     const { name, teacherId, durationMonths, academicEventId } =
@@ -28,19 +38,15 @@ export class CourseService {
     });
 
     return {
-      message: 'Curso creado exitosamente',
       data: course,
-      state: HttpStatus.CREATED,
+      message: 'Curso creado exitosamente',
+      status: HttpStatus.CREATED,
     };
   }
 
   private async validateTeacherExists(teacherId: string) {
-    const teacher = await this.prisma.user.findUnique({
-      where: { id: teacherId, 
-        role: Role.TEACHER
-      },
-    });
-    if (!teacher) {
+    const teacher = await this.userService.findOneId(teacherId);
+    if (teacher.role !== Role.TEACHER) {
       throw new NotFoundException('El profesor no existe');
     }
   }
@@ -54,19 +60,95 @@ export class CourseService {
     }
   }
 
-  findAll() {
-    return `This action returns all course`;
+  async findAll(coursePaginationDto: CoursePaginationDto) {
+    return await paginate({
+      prisma: this.prisma,
+      model: this.prisma.course,
+      page: coursePaginationDto.page,
+      limit: coursePaginationDto.limit,
+      where: { status: coursePaginationDto.status },
+    });
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} course`;
+  findOneStatusActive(id: string) {
+    return this.prisma.course.findUnique({
+      where: { id: id, status: 'ACTIVE' },
+    });
   }
 
-  update(id: number, updateCourseDto: UpdateCourseDto) {
-    return `This action updates a #${id} course`;
+  async update(id: string, updateCourseDto: Partial<UpdateCourseDto>) {
+    if (!updateCourseDto || Object.keys(updateCourseDto).length === 0) {
+      throw new BadRequestException(
+        'Debe proporcionar al menos un campo para actualizar',
+      );
+    }
+
+    const { teacherId, academicEventId } = updateCourseDto;
+
+    if (teacherId) await this.validateTeacherExists(teacherId);
+    if (academicEventId)
+      await this.validateAcademicEventExists(academicEventId);
+
+    const existingCourse = await this.prisma.course.findUnique({
+      where: { id },
+    });
+
+    if (!existingCourse) throw new NotFoundException('Curso no encontrado');
+
+    // Usar el helper detectChanges
+    const courseChanges = detectChanges(existingCourse, updateCourseDto);
+
+    if (Object.keys(courseChanges).length === 0) {
+      throw new BadRequestException(
+        'No se detectaron cambios en los datos proporcionados',
+      );
+    }
+
+    await this.prisma.course.update({
+      where: { id },
+      data: courseChanges,
+    });
+
+    return {
+      message: 'Curso actualizado correctamente',
+      status: HttpStatus.OK,
+    };
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} course`;
+  async remove(id: string) {
+    const courseNotActive = await this.prisma.course.findFirst({
+      where: { id },
+    });
+    if (!courseNotActive) throw new BadRequestException('Curso no encontrado');
+    if (courseNotActive.status === 'INACTIVE')
+      throw new BadRequestException('El curso ya está inactivo');
+
+    const deleteCourse = await this.prisma.course.update({
+      where: { id },
+      data: { status: 'INACTIVE' },
+      select: {
+        id: true,
+        name: true,
+        teacher: {
+          select: {
+            userProfile: {
+              select: {
+                names: true,
+                lastNames: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const { id: _, name } = deleteCourse;
+    const selectedData = { name };
+
+    return {
+      message: 'Usuario eliminado correctamente',
+      data: deleteCourse,
+      status: HttpStatus.OK,
+    };
   }
 }

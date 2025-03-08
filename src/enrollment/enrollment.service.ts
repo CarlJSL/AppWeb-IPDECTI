@@ -6,26 +6,44 @@ import {
 } from '@nestjs/common';
 import { CreateEnrollmentDto } from './dto/create-enrollment.dto';
 import { UpdateEnrollmentDto } from './dto/update-enrollment.dto';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from 'src/common/prisma/prisma.service';
 import { UsersService } from 'src/user/users.service';
-import { Role } from 'src/enums/roles.enum';
+import { Role } from 'src/common/enums/roles.enum';
 import { CreateUserDto } from 'src/user/dto/create-user.dto';
-import { stat } from 'fs';
+import { UserProfileService } from 'src/user-profile/user-profile.service';
+import { last } from 'rxjs';
+import { CourseService } from 'src/course/course.service';
 
 @Injectable()
 export class EnrollmentService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly userService: UsersService,
+    private readonly userProfileService: UserProfileService,
+    private readonly courseService: CourseService,
   ) {}
 
   async create(createEnrollmentDto: CreateEnrollmentDto) {
-    const { email, dni, names, courseId } = createEnrollmentDto;
+    const {
+      email,
+      dni,
+      names,
+      courseId,
+      lastNames,
+      phone,
+      address,
+      birthdate,
+    } = createEnrollmentDto;
 
     const emailBase = email.split('@')[0];
     const institutionalEmail = `${emailBase}@ipdecti.com`;
 
     let user = await this.userService.findOneByEmail(institutionalEmail);
+    const course = await this.courseService.findOneStatusActive(courseId);
+
+    if (!course) {
+      throw new NotFoundException('El curso no existe');
+    }
 
     if (!user) {
       const createUser: CreateUserDto = {
@@ -35,9 +53,22 @@ export class EnrollmentService {
         role: Role.POSTULANT,
       };
 
-      ///Logica para añadir userProfile Despues de Haccer el modulo de UserProfile
-
       const newUser = await this.userService.createaAuto(createUser);
+
+      const dtoCreateUserProfile = {
+        userId: newUser.id,
+        names: names,
+        lastNames: lastNames,
+        dni: dni,
+        email: email,
+        phone: phone,
+        address: address,
+        birthdate: birthdate,
+      };
+
+      const userProfile =
+        await this.userProfileService.create(dtoCreateUserProfile);
+
       user = newUser;
     }
 

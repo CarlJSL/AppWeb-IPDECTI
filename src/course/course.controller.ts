@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  Query,
+  ParseUUIDPipe,
+} from '@nestjs/common';
 import { CourseService } from './course.service';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
@@ -6,6 +17,8 @@ import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { AuthGuard } from 'src/auth/guards/auth.guard';
 import { Role } from '@prisma/client';
 import { Roles } from 'src/auth/decorators/roles.decorator';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
+import { CoursePaginationDto } from './dto/paginacion-course';
 
 @UseGuards(AuthGuard, RolesGuard)
 @Controller('course')
@@ -18,23 +31,30 @@ export class CourseController {
     return this.courseService.create(createCourseDto);
   }
 
-  @Get()
-  findAll() {
-    return this.courseService.findAll();
+  @Get(':status?')
+  findAll(
+    @Query() paginationDto: PaginationDto,
+    @Param() statusDto: CoursePaginationDto,
+  ) {
+    const coursePaginationDto = {
+      ...paginationDto,
+      status: statusDto.status,
+    };
+    return this.courseService.findAll(coursePaginationDto);
   }
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.courseService.findOne(+id);
+    return this.courseService.findOneStatusActive(id);
   }
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateCourseDto: UpdateCourseDto) {
-    return this.courseService.update(+id, updateCourseDto);
+    return this.courseService.update(id, updateCourseDto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.courseService.remove(+id);
+  remove(@Param('id', ParseUUIDPipe) id: string) {
+    return this.courseService.remove(id);
   }
 }

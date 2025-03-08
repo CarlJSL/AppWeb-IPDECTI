@@ -11,6 +11,7 @@ import {
   HttpCode,
   HttpStatus,
   Query,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -20,7 +21,7 @@ import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { Role } from '@prisma/client';
 import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
-import { OrderPaginationDto } from './dto/user-paginacion.dto';
+import { UserPaginationDto } from './dto/user-paginacion.dto';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { DeleteUserDto } from './dto/delete-user.dto';
 
@@ -37,10 +38,10 @@ export class UsersController {
   }
 
   @Roles(Role.ADMIN)
-  @Get(':status')
+  @Get(':status?')
   findAll(
     @Query() paginationDto: PaginationDto,
-    @Param() statusDto: OrderPaginationDto,
+    @Param() statusDto: UserPaginationDto,
   ) {
     const orderPaginationDto = {
       ...paginationDto,
@@ -51,14 +52,17 @@ export class UsersController {
   }
 
   @Roles(Role.ADMIN, Role.TEACHER)
-  @Get(':email')
+  @Get('email/:email')
   findOneByEmail(@Param('email') id: string) {
-    return this.usersService.findOneByEmail(id);
+    return this.usersService.findOneByEmailData(id);
   }
 
   @Roles(Role.ADMIN)
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
+  update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() updateUserDto: UpdateUserDto,
+  ) {
     return this.usersService.update(id, updateUserDto);
   }
 

@@ -8,10 +8,16 @@ import {
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import * as bcrypt from 'bcrypt';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { OrderPaginationDto } from './dto/user-paginacion.dto';
+import { PrismaService } from 'src/common/prisma/prisma.service';
+import { UserPaginationDto } from './dto/user-paginacion.dto';
 import { _ } from 'lodash';
-import { UserStatusEnum, UserStatusList } from '../enums/user-status.enum';
+import {
+  UserStatusEnum,
+  UserStatusList,
+} from '../common/enums/user-status.enum';
+import { paginate } from 'src/common/helpers/helper.pagination';
+import { detectChanges } from 'src/common/helpers/helper.detectChanges';
+import { User } from '@prisma/client';
 
 @Injectable()
 export class UsersService {
@@ -42,120 +48,96 @@ export class UsersService {
     return { message: 'Usuario registrado exitosamente' };
   }
 
-  async findAll(userPaginationDto: OrderPaginationDto) {
-    const statusUser = userPaginationDto.status;
-    const currentPage = userPaginationDto.page;
-    const limit = userPaginationDto.limit;
-
-    const totalNumUser = await this.prisma.user.count({
-      where: {
-        status: statusUser,
+  async findAll(userPaginationDto: UserPaginationDto) {
+    return await paginate({
+      prisma: this.prisma,
+      model: this.prisma.user,
+      page: userPaginationDto.page,
+      limit: userPaginationDto.limit,
+      where: { status: userPaginationDto.status },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        status: true,
       },
     });
+  }
 
-    const lastPage = Math.ceil(totalNumUser / limit);
+  async findOneId(id: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: id },
+      include: { userProfile: true },
+    });
+    return user;
+  }
 
-    if (currentPage > lastPage || currentPage < 1) {
-      return {
-        data: [],
-        meta: {
-          total: totalNumUser,
-          page: currentPage,
-          lastPage,
-          message: 'No hay datos disponibles para esta página.',
-        },
-      };
+  async findOneByEmailData(email: string) {
+    const userdata = await this.prisma.user.findUnique({
+      where: { email: email },
+      include: { userProfile: true },
+    });
+
+    if (!userdata) {
+      throw new NotFoundException(`Usuario con " ${email} " no encontrado`);
+      status: HttpStatus.NOT_FOUND;
     }
 
-    return {
-      data: await this.prisma.user.findMany({
-        skip: (currentPage - 1) * limit,
-        take: limit,
-        where: {
-          status: statusUser,
-        },
-      }),
-      meta: {
-        total: totalNumUser,
-        page: currentPage,
-        lastPage,
-      },
-    };
+    return userdata;
   }
 
   async findOneByEmail(email: string) {
-    return await this.prisma.user.findUnique({
+    const user = await this.prisma.user.findUnique({
       where: { email: email },
     });
-  }
 
-  async findOneByEmailPersonal(email: string) {
-    return await this.prisma.userProfile.findUnique({
-      where: { emailPersonal: email },
-    });
+    return user;
   }
 
   async update(id: string, updateUserDto: Partial<UpdateUserDto>) {
-    if (_.isEmpty(updateUserDto)) {
+    if (!updateUserDto || Object.keys(updateUserDto).length === 0) {
       throw new BadRequestException(
         'Debe proporcionar al menos un campo para actualizar',
       );
     }
 
-    const { name, role, userProfile } = updateUserDto;
+    const { name, role } = updateUserDto;
 
     // Obtener el usuario existente con su perfil
     const existingUser = await this.prisma.user.findUnique({
       where: { id },
-      include: { userProfile: true },
     });
 
     if (!existingUser) {
       throw new NotFoundException('Usuario no encontrado');
     }
+    // Detectar cambios en los datos
+    const userChanges = detectChanges(existingUser, { name, role });
 
-    // Detectar cambios en los campos del usuario
-    const userChanges = _.pickBy(
-      { name, role },
-      (value, key) => !_.isEqual(value, existingUser[key]),
-    );
-
-    // Detectar cambios en el perfil del usuario
-    const profileChanges = userProfile
-      ? _.pickBy(
-          userProfile,
-          (value, key) => !_.isEqual(value, existingUser.userProfile?.[key]),
-        )
-      : {};
-
-    // Si no hay cambios, lanzar una excepción
-    if (_.isEmpty(userChanges) && _.isEmpty(profileChanges)) {
+    if (Object.keys(userChanges).length === 0) {
       throw new BadRequestException(
         'No se detectaron cambios en los datos proporcionados',
       );
     }
 
-    // Actualizar el usuario si hay cambios
-    if (!_.isEmpty(userChanges)) {
-      await this.prisma.user.update({
-        where: { id },
-        data: userChanges,
-      });
-    }
+    //  Transacción para asegurar consistencia
+    await this.prisma.$transaction(async (prisma) => {
+      // Actualizar usuario si hay cambios
+      if (Object.keys(userChanges).length > 0) {
+        await prisma.user.update({
+          where: { id },
+          data: userChanges,
+        });
+      }
 
-    // Actualizar o crear el perfil del usuario si hay cambios
-    if (!_.isEmpty(profileChanges)) {
-      await this.prisma.userProfile.upsert({
-        where: { userId: id },
-        update: profileChanges,
-        create: {
-          user: { connect: { id } },
-          ...profileChanges,
-        },
-      });
-    }
+      // Actualizar perfil si hay cambios
+    });
 
-    return { message: 'Usuario actualizado correctamente' };
+    return {
+      message: 'Usuario actualizado correctamente',
+      status: HttpStatus.OK,
+    };
   }
 
   async remove(deleteUserDto: string) {
@@ -179,7 +161,7 @@ export class UsersService {
     return {
       message: 'Usuario eliminado correctamente',
       data: selectedData,
-      state: HttpStatus.OK,
+      status: HttpStatus.OK,
     };
   }
 
@@ -194,12 +176,18 @@ export class UsersService {
         email: data.email,
         password: hashedPassword,
         role: data.role,
-        createdBy, // Usuario que creó el registro
+        createdBy: createdBy, // Usuario que creó el registro
         updatedBy: createdBy,
         status: UserStatusEnum.SUSPENDED,
       },
     });
 
     return user;
+  }
+
+  async findUserProfile(id: string) {
+    return await this.prisma.userProfile.findUnique({
+      where: { userId: id },
+    });
   }
 }
