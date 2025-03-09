@@ -13,6 +13,8 @@ import { CreateUserDto } from 'src/user/dto/create-user.dto';
 import { UserProfileService } from 'src/user-profile/user-profile.service';
 import { last } from 'rxjs';
 import { CourseService } from 'src/course/course.service';
+import { EnrollmentPaginationDto } from './dto/pagination-enrollment.dto';
+import { paginate } from 'src/common/helpers/helper.pagination';
 
 @Injectable()
 export class EnrollmentService {
@@ -99,11 +101,33 @@ export class EnrollmentService {
     };
   }
 
-  findAll() {
-    return `This action returns all enrollment`;
+  async findAll(enrollmentPaginationDto: EnrollmentPaginationDto) {
+    return await paginate({
+      prisma: this.prisma,
+      model: this.prisma.enrollment,
+      page: enrollmentPaginationDto.page,
+      limit: enrollmentPaginationDto.limit,
+      where: { status: enrollmentPaginationDto.status },
+      select: { 
+        id: true,
+        user:{
+         
+          select:{
+            email: true,
+            userProfile:{
+              select:{
+                names:true,
+                lastNames:true,
+                dni:true
+              }
+            }
+          }
+        }
+      }
+    });
   }
 
-  findOne(id: number) {
+  findOne(id: string) {
     return `This action returns a #${id} enrollment`;
   }
 
@@ -111,7 +135,7 @@ export class EnrollmentService {
     return `This action updates a #${id} enrollment`;
   }
 
-  remove(id: number) {
+  remove(id: string) {
     return `This action removes a #${id} enrollment`;
   }
 }

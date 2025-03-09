@@ -21,11 +21,6 @@ export class UserProfileController {
     return this.userProfileService.create(createUserProfileDto);
   }
 
-  @Get()
-  findAll() {
-    return this.userProfileService.findAll();
-  }
-
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.userProfileService.findOne(id);

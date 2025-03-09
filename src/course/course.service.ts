@@ -67,6 +67,27 @@ export class CourseService {
       page: coursePaginationDto.page,
       limit: coursePaginationDto.limit,
       where: { status: coursePaginationDto.status },
+      select: {
+        id: true,
+        name: true,
+        durationMonths: true,
+
+        teacher: {
+          select: {
+            userProfile: {
+              select: {
+                names: true,
+                lastNames: true,
+              },
+            },
+          },
+        },
+        academicEvent: {
+          select: {
+            name: true,
+          },
+        },
+      },
     });
   }
 

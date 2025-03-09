@@ -6,7 +6,7 @@ interface PaginationParams<T> {
   page: number;
   limit: number;
   where?: T; // Filtros opcionales
-  select?: Record<string, boolean>; 
+  select?: Record<string, any>; 
 }
 
 export async function paginate<T>({ prisma, model, page, limit, where,select }: PaginationParams<T>) {

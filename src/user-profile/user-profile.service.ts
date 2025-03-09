@@ -56,10 +56,6 @@ export class UserProfileService {
     };
   }
 
-  findAll() {
-    return `This action returns all userProfile`;
-  }
-
   async findOne(id: string) {
     return await this.prisma.userProfile.findUnique({
       where: {

@@ -1,5 +1,4 @@
 import { CourseStatus } from "@prisma/client";
-import { Course } from "src/course/entities/course.entity";
 
 export const CourseStatusList= [
     CourseStatus.ACTIVE,
