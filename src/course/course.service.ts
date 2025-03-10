@@ -12,6 +12,8 @@ import { UsersService } from 'src/user/users.service';
 import { CoursePaginationDto } from './dto/paginacion-course';
 import { paginate } from 'src/common/helpers/helper.pagination';
 import { detectChanges } from 'src/common/helpers/helper.detectChanges';
+import { plainToInstance } from 'class-transformer';
+import { CourseResponseDto } from './dto/response-course.dto';
 
 @Injectable()
 export class CourseService {
@@ -35,10 +37,29 @@ export class CourseService {
         durationMonths: durationMonths,
         academicEventId,
       },
+      include: {
+        teacher: {
+          select: {
+            userProfile: {
+              select: {
+                names: true,
+                lastNames: true,
+              },
+            },
+          },
+        },
+        academicEvent: {
+          select: {
+            name: true,
+          },
+        },
+      },
     });
 
     return {
-      data: course,
+      data: plainToInstance(CourseResponseDto, course, {
+        excludeExtraneousValues: true,
+      }),
       message: 'Curso creado exitosamente',
       status: HttpStatus.CREATED,
     };
@@ -91,9 +112,29 @@ export class CourseService {
     });
   }
 
-  findOneStatusActive(id: string) {
-    return this.prisma.course.findUnique({
+  async findOneStatusActive(id: string) {
+    const user = await this.prisma.course.findUnique({
       where: { id: id, status: 'ACTIVE' },
+      include: {
+        teacher: {
+          select: {
+            userProfile: {
+              select: {
+                names: true,
+                lastNames: true,
+              },
+            },
+          },
+        },
+        academicEvent: {
+          select: {
+            name: true,
+          },
+        },
+      },
+    });
+    return plainToInstance(CourseResponseDto, user, {
+      excludeExtraneousValues: true,
     });
   }
 
@@ -125,12 +166,23 @@ export class CourseService {
       );
     }
 
-    await this.prisma.course.update({
+    const userUpdate = await this.prisma.course.update({
       where: { id },
       data: courseChanges,
+      include: {
+        teacher: {
+          select: {
+            userProfile: true,
+          },
+        },
+        academicEvent: true,
+      },
     });
 
     return {
+      data: plainToInstance(CourseResponseDto, userUpdate, {
+        excludeExtraneousValues: true,
+      }),
       message: 'Curso actualizado correctamente',
       status: HttpStatus.OK,
     };
@@ -147,28 +199,23 @@ export class CourseService {
     const deleteCourse = await this.prisma.course.update({
       where: { id },
       data: { status: 'INACTIVE' },
-      select: {
-        id: true,
-        name: true,
+      include:{
         teacher: {
           select: {
-            userProfile: {
-              select: {
-                names: true,
-                lastNames: true,
-              },
-            },
+            userProfile: true,
           },
         },
-      },
+        academicEvent: true,
+      }
+        
+      
     });
 
-    const { id: _, name } = deleteCourse;
-    const selectedData = { name };
-
     return {
-      message: 'Usuario eliminado correctamente',
-      data: deleteCourse,
+      data: plainToInstance(CourseResponseDto, deleteCourse, {
+        excludeExtraneousValues: true,
+      }),
+      message: 'Curso eliminado correctamente',
       status: HttpStatus.OK,
     };
   }

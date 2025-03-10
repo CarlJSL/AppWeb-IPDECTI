@@ -43,7 +43,7 @@ export class CourseController {
     return this.courseService.findAll(coursePaginationDto);
   }
 
-  @Get(':id')
+  @Get('id/:id')
   findOne(@Param('id') id: string) {
     return this.courseService.findOneStatusActive(id);
   }
