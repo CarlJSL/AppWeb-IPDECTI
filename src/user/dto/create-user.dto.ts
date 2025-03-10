@@ -3,6 +3,7 @@ import {
   IsEnum,
   IsNotEmpty,
   IsString,
+  Matches,
   MinLength,
 } from 'class-validator';
 import { Role } from '@prisma/client';
@@ -14,6 +15,9 @@ export class CreateUserDto {
 
   @IsEmail()
   @IsNotEmpty()
+  @Matches(/^[\w.-]+@ipdectic\.com$/, {
+    message: 'El correo debe pertenecer al dominio @ipdectic.com',
+  })
   email: string;
 
   @IsString()

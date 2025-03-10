@@ -18,6 +18,8 @@ import {
 import { paginate } from 'src/common/helpers/helper.pagination';
 import { detectChanges } from 'src/common/helpers/helper.detectChanges';
 import { User } from '@prisma/client';
+import { plainToInstance } from 'class-transformer';
+import { UserResponseDto } from './dto/response-user.dto';
 
 @Injectable()
 export class UsersService {
@@ -45,7 +47,19 @@ export class UsersService {
         updatedBy: createdBy,
       },
     });
-    return { message: 'Usuario registrado exitosamente' };
+    const selectedData = {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      status: user.status,
+    };
+
+    return {
+      data: { selectedData, password: data.password },
+      message: 'Usuario registrado exitosamente',
+      status: HttpStatus.CREATED,
+    };
   }
 
   async findAll(userPaginationDto: UserPaginationDto) {
@@ -70,7 +84,14 @@ export class UsersService {
       where: { id: id },
       include: { userProfile: true },
     });
-    return user;
+
+    if (!user) {
+      throw new NotFoundException(`Usuario con " ${id} " no encontrado`);
+    }
+
+    return plainToInstance(UserResponseDto, user, {
+      excludeExtraneousValues: true,
+    });
   }
 
   async findOneByEmailData(email: string) {
@@ -81,10 +102,11 @@ export class UsersService {
 
     if (!userdata) {
       throw new NotFoundException(`Usuario con " ${email} " no encontrado`);
-      status: HttpStatus.NOT_FOUND;
     }
 
-    return userdata;
+    return plainToInstance(UserResponseDto, userdata, {
+      excludeExtraneousValues: true,
+    });
   }
 
   async findOneByEmail(email: string) {
@@ -102,8 +124,6 @@ export class UsersService {
       );
     }
 
-    const { name, role } = updateUserDto;
-
     // Obtener el usuario existente con su perfil
     const existingUser = await this.prisma.user.findUnique({
       where: { id },
@@ -112,8 +132,9 @@ export class UsersService {
     if (!existingUser) {
       throw new NotFoundException('Usuario no encontrado');
     }
-    // Detectar cambios en los datos
-    const userChanges = detectChanges(existingUser, { name, role });
+
+    // Detectar cambios en todos los atributos del usuario
+    const userChanges = detectChanges(existingUser, updateUserDto);
 
     if (Object.keys(userChanges).length === 0) {
       throw new BadRequestException(
@@ -121,28 +142,24 @@ export class UsersService {
       );
     }
 
-    //  Transacción para asegurar consistencia
-    await this.prisma.$transaction(async (prisma) => {
-      // Actualizar usuario si hay cambios
-      if (Object.keys(userChanges).length > 0) {
-        await prisma.user.update({
-          where: { id },
-          data: userChanges,
-        });
-      }
-
-      // Actualizar perfil si hay cambios
+    // Actualizar el usuario
+    const updatedUser = await this.prisma.user.update({
+      where: { id },
+      data: userChanges,
     });
 
     return {
+      data: plainToInstance(UserResponseDto, updatedUser, {
+        excludeExtraneousValues: true,
+      }),
       message: 'Usuario actualizado correctamente',
       status: HttpStatus.OK,
     };
   }
 
-  async remove(deleteUserDto: string) {
-    const emailChangeState = deleteUserDto;
-    const user = await this.findOneByEmail(emailChangeState);
+  async remove(id: string) {
+    const userChangeState = id;
+    const user = await this.findOneId(userChangeState);
     if (!user) {
       throw new BadRequestException('Usuario no encontrado');
     }
@@ -151,7 +168,7 @@ export class UsersService {
       throw new BadRequestException('El usuario ya está inactivo');
     }
     const userDelete = await this.prisma.user.update({
-      where: { email: emailChangeState },
+      where: { id: userChangeState },
       data: { status: UserStatusEnum.INACTIVE },
     });
 
@@ -159,8 +176,10 @@ export class UsersService {
     const selectedData = { email, name, role };
 
     return {
+      data: plainToInstance(UserResponseDto, userDelete, {
+        excludeExtraneousValues: true,
+      }),
       message: 'Usuario eliminado correctamente',
-      data: selectedData,
       status: HttpStatus.OK,
     };
   }

@@ -23,7 +23,6 @@ import { Role } from '@prisma/client';
 import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 import { UserPaginationDto } from './dto/user-paginacion.dto';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
-import { DeleteUserDto } from './dto/delete-user.dto';
 
 @UseGuards(AuthGuard, RolesGuard)
 @Controller('users')
@@ -57,6 +56,12 @@ export class UsersController {
     return this.usersService.findOneByEmailData(id);
   }
 
+  @Roles(Role.ADMIN, Role.TEACHER)
+  @Get('id/:id')
+  findOneByUuid(@Param('id', ParseUUIDPipe) id: string) {
+    return this.usersService.findOneId(id);
+  }
+
   @Roles(Role.ADMIN)
   @Patch(':id')
   update(
@@ -67,8 +72,8 @@ export class UsersController {
   }
 
   @Roles(Role.ADMIN)
-  @Delete(':email')
-  remove(@Param() deleteUserDto: DeleteUserDto) {
-    return this.usersService.remove(deleteUserDto.email);
+  @Delete(':id')
+  remove(@Param('id', ParseUUIDPipe) id: string) {
+    return this.usersService.remove(id);
   }
 }
