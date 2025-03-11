@@ -36,9 +36,9 @@ export class EnrollmentController {
     return this.enrollmentService.findAll(orderPaginationDto);
   }
 
-  @Get(':id')
+  @Get('id/:id')
   findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return this.enrollmentService.findOne(id);
+    return this.enrollmentService.findOneEstatusActive(id);
   }
 
   @Patch(':id')

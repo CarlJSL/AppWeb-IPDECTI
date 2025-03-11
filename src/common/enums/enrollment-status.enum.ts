@@ -14,3 +14,9 @@ export enum EnrollmentStatusEnum {
     VENCIDA = 'VENCIDA'
 }
   
+export const EnrollmentStatusActiveList= [
+    EnrollmentStatus.ACTIVE,
+    EnrollmentStatus.COMPLETED,
+    EnrollmentStatus.PENDIENTE,
+]
+  

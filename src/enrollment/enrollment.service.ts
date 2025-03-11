@@ -19,6 +19,7 @@ import { paginate } from 'src/common/helpers/helper.pagination';
 import { plainToInstance } from 'class-transformer';
 import { EnrollmentResponseDto } from './dto/response-enrollment.dto';
 import { detectChanges } from 'src/common/helpers/helper.detectChanges';
+import { EnrollmentStatusActiveList } from 'src/common/enums/enrollment-status.enum';
 
 @Injectable()
 export class EnrollmentService {
@@ -155,8 +156,34 @@ export class EnrollmentService {
     });
   }
 
-  findOne(id: string) {
-    return `This action returns a #${id} enrollment`;
+  async findOneEstatusActive(id: string) {
+    const enrollement = await this.prisma.enrollment.findUnique({
+      where: { id: id, status: { in: EnrollmentStatusActiveList } },
+      include: {
+        user: {
+          select: {
+            userProfile: {
+              select: {
+                names: true,
+                lastNames: true,
+                dni: true,
+              },
+            },
+          },
+        },
+        course: {
+          select: {
+            name: true,
+          },
+        },
+      },
+    });
+    if (!enrollement) {
+      throw new NotFoundException('La matrícula no existe');
+    }
+    return plainToInstance(EnrollmentResponseDto, enrollement, {
+      excludeExtraneousValues: true,
+    });
   }
 
   async update(id: string, updateEnrollmentDto: Partial<UpdateEnrollmentDto>) {
@@ -217,7 +244,35 @@ export class EnrollmentService {
     };
   }
 
-  remove(id: string) {
-    return `This action removes a #${id} enrollment`;
+  async remove(id: string) {
+    const enrollmentNotActive = await this.prisma.enrollment.findFirst({
+      where: { id },
+    });
+
+    if (!enrollmentNotActive)
+      throw new BadRequestException('Matricula no encontrada');
+    if (enrollmentNotActive.status === 'VENCIDA') {
+      throw new BadRequestException('La matricula ya está vencida');
+    }
+
+    const deleteEnrollment = await this.prisma.enrollment.update({
+      where: { id },
+      data: { status: 'VENCIDA' },
+      include: {
+        user: {
+          select: {
+            userProfile: true,
+          },
+        },
+        course: true,
+      },
+    });
+    return {
+      data: plainToInstance(EnrollmentResponseDto, deleteEnrollment, {
+        excludeExtraneousValues: true,
+      }),
+      message: 'Matrícula eliminada correctamente',
+      status: HttpStatus.OK,
+    };
   }
 }
