@@ -113,7 +113,7 @@ export class CourseService {
   }
 
   async findOneStatusActive(id: string) {
-    const user = await this.prisma.course.findUnique({
+    const course = await this.prisma.course.findUnique({
       where: { id: id, status: 'ACTIVE' },
       include: {
         teacher: {
@@ -133,7 +133,12 @@ export class CourseService {
         },
       },
     });
-    return plainToInstance(CourseResponseDto, user, {
+
+    if (!course) {
+      throw new NotFoundException('El curso no existe');
+    }
+
+    return plainToInstance(CourseResponseDto, course, {
       excludeExtraneousValues: true,
     });
   }
@@ -199,16 +204,14 @@ export class CourseService {
     const deleteCourse = await this.prisma.course.update({
       where: { id },
       data: { status: 'INACTIVE' },
-      include:{
+      include: {
         teacher: {
           select: {
             userProfile: true,
           },
         },
         academicEvent: true,
-      }
-        
-      
+      },
     });
 
     return {
