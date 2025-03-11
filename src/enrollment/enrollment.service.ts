@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   HttpStatus,
   Injectable,
@@ -15,6 +16,9 @@ import { last } from 'rxjs';
 import { CourseService } from 'src/course/course.service';
 import { EnrollmentPaginationDto } from './dto/pagination-enrollment.dto';
 import { paginate } from 'src/common/helpers/helper.pagination';
+import { plainToInstance } from 'class-transformer';
+import { EnrollmentResponseDto } from './dto/response-enrollment.dto';
+import { detectChanges } from 'src/common/helpers/helper.detectChanges';
 
 @Injectable()
 export class EnrollmentService {
@@ -68,8 +72,7 @@ export class EnrollmentService {
         birthdate: birthdate,
       };
 
-      const userProfile =
-        await this.userProfileService.create(dtoCreateUserProfile);
+      await this.userProfileService.create(dtoCreateUserProfile);
 
       user = newUser;
     }
@@ -92,10 +95,30 @@ export class EnrollmentService {
         userId: user.id,
         courseId: courseId,
       }, // crear pdf de la matricula
+      include: {
+        user: {
+          select: {
+            userProfile: {
+              select: {
+                names: true,
+                lastNames: true,
+                dni: true,
+              },
+            },
+          },
+        },
+        course: {
+          select: {
+            name: true,
+          },
+        },
+      },
     });
 
     return {
-      data: enrollment,
+      data: plainToInstance(EnrollmentResponseDto, enrollment, {
+        excludeExtraneousValues: true,
+      }),
       message: 'Matrícula registrada exitosamente',
       state: HttpStatus.CREATED,
     };
@@ -108,22 +131,27 @@ export class EnrollmentService {
       page: enrollmentPaginationDto.page,
       limit: enrollmentPaginationDto.limit,
       where: { status: enrollmentPaginationDto.status },
-      select: { 
+      select: {
         id: true,
-        user:{
-         
-          select:{
+        status: true,
+        user: {
+          select: {
             email: true,
-            userProfile:{
-              select:{
-                names:true,
-                lastNames:true,
-                dni:true
-              }
-            }
-          }
-        }
-      }
+            userProfile: {
+              select: {
+                names: true,
+                lastNames: true,
+                dni: true,
+              },
+            },
+          },
+        },
+        course: {
+          select: {
+            name: true,
+          },
+        },
+      },
     });
   }
 
@@ -131,8 +159,62 @@ export class EnrollmentService {
     return `This action returns a #${id} enrollment`;
   }
 
-  update(id: number, updateEnrollmentDto: UpdateEnrollmentDto) {
-    return `This action updates a #${id} enrollment`;
+  async update(id: string, updateEnrollmentDto: Partial<UpdateEnrollmentDto>) {
+    if (!updateEnrollmentDto || Object.keys(updateEnrollmentDto).length === 0) {
+      throw new BadRequestException(
+        'Debe proporcional al menos un campo a actualizar',
+      );
+    }
+
+    const { courseId } = updateEnrollmentDto;
+
+    const course = await this.courseService.findOneStatusActive(courseId);
+
+    if (!course) {
+      throw new NotFoundException('El curso no existe');
+    }
+
+    const existingEnrollment = await this.prisma.enrollment.findUnique({
+      where: { id: id },
+    });
+
+    if (!existingEnrollment) {
+      throw new NotFoundException('La matrícula no existe');
+    }
+
+    const courseChanges = detectChanges(
+      existingEnrollment,
+      updateEnrollmentDto,
+    );
+
+    if (Object.keys(courseChanges).length === 0) {
+      throw new BadRequestException(
+        'No se detectarion cambios en los datos proporcionados',
+      );
+    }
+
+    const enrollmentUpdate = await this.prisma.enrollment.update({
+      where: { id },
+      data: {
+        courseId: courseId,
+      },
+      include: {
+        user: {
+          select: {
+            userProfile: true,
+          },
+        },
+        course: true,
+      },
+    });
+
+    return {
+      data: plainToInstance(EnrollmentResponseDto, enrollmentUpdate, {
+        excludeExtraneousValues: true,
+      }),
+      message: 'Matrícula actualizada exitosamente',
+      state: HttpStatus.OK,
+    };
   }
 
   remove(id: string) {

@@ -43,10 +43,10 @@ export class EnrollmentController {
 
   @Patch(':id')
   update(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() updateEnrollmentDto: UpdateEnrollmentDto,
   ) {
-    return this.enrollmentService.update(+id, updateEnrollmentDto);
+    return this.enrollmentService.update(id, updateEnrollmentDto);
   }
 
   @Delete(':id')
