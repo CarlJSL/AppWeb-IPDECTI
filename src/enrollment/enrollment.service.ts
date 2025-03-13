@@ -275,4 +275,17 @@ export class EnrollmentService {
       status: HttpStatus.OK,
     };
   }
+
+  //*ATTENDANCE:
+  //* Obtener estudiantes inscritos en un curso
+
+  async getStudentsByCourse(courseId: string) {
+
+    await this.courseService.findOneStatusActive(courseId);
+
+    return this.prisma.enrollment.findMany({
+      where: { courseId },
+      include: { user: true },
+    });
+  }
 }

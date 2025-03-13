@@ -135,7 +135,7 @@ export class CourseService {
     });
 
     if (!course) {
-      throw new NotFoundException('El curso no existe');
+      throw new NotFoundException('El curso no existe o está inactivo');
     }
 
     return plainToInstance(CourseResponseDto, course, {
@@ -221,5 +221,18 @@ export class CourseService {
       message: 'Curso eliminado correctamente',
       status: HttpStatus.OK,
     };
+  }
+
+  //*ATTENDANCE:
+
+  //*Obtener cursos por profesor {Roles: TEACHER, ADMIN}
+
+  async getCoursesByTeacher(teacherId: string) {
+    await this.userService.findOneId(teacherId, Role.TEACHER);
+
+    return this.prisma.course.findMany({
+      where: { teacherId },
+      include: { students: true },
+    });
   }
 }

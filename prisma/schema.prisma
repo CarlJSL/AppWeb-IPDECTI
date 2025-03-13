@@ -73,14 +73,16 @@ model Enrollment {
 }
 
 model Attendance {
-  id       String   @id @default(uuid())
-  user     User     @relation(fields: [userId], references: [id])
-  userId   String
-  course   Course   @relation(fields: [courseId], references: [id])
-  courseId String
-  date     DateTime
-  present  Boolean // Indica si el usuario estuvo presente
+  id         String            @id @default(uuid())
+  student    User              @relation(fields: [studentId], references: [id])
+  studentId  String            // ID del estudiante
+  course     Course            @relation(fields: [courseId], references: [id])
+  courseId   String            // ID del curso
+  date       DateTime          @default(now()) // Fecha de asistencia
+  status     AttendanceStatus  @default(PRESENTE) // Estado de asistencia
+  comments   String?           // Comentarios opcionales
 }
+
 
 model Grade {
   id       String @id @default(uuid())
@@ -143,4 +145,11 @@ enum UserStatus {
   ACTIVE
   INACTIVE
   SUSPENDED
+}
+
+enum AttendanceStatus {
+  PRESENTE
+  TARDE
+  JUSTIFICADO
+  AUSENTE
 }

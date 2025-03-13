@@ -20,6 +20,7 @@ import { detectChanges } from 'src/common/helpers/helper.detectChanges';
 import { User } from '@prisma/client';
 import { plainToInstance } from 'class-transformer';
 import { UserResponseDto } from './dto/response-user.dto';
+import { Role } from 'src/common/enums/roles.enum';
 
 @Injectable()
 export class UsersService {
@@ -79,14 +80,19 @@ export class UsersService {
     });
   }
 
-  async findOneId(id: string) {
+  async findOneId(id: string, role?: string) {
     const user = await this.prisma.user.findUnique({
-      where: { id: id },
-      include: { userProfile: true },
+      where: { id },
     });
 
     if (!user) {
-      throw new NotFoundException(`Usuario con " ${id} " no encontrado`);
+      throw new NotFoundException(`Usuario con ID ${id} no encontrado`);
+    }
+
+    if (role && user.role !== role) {
+      throw new NotFoundException(
+        `Usuario con ID ${id} no tiene el rol ${role}`,
+      );
     }
 
     return plainToInstance(UserResponseDto, user, {

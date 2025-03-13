@@ -24,7 +24,7 @@ import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 import { UserPaginationDto } from './dto/user-paginacion.dto';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 
-@UseGuards(AuthGuard, RolesGuard)
+@UseGuards( RolesGuard)//AuthGuard
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
@@ -36,7 +36,7 @@ export class UsersController {
     return this.usersService.create(createUserDto, user);
   }
 
-  @Roles(Role.ADMIN)
+//  @Roles(Role.ADMIN)
   @Get(':status?')
   findAll(
     @Query() paginationDto: PaginationDto,

@@ -10,5 +10,6 @@ import { CourseModule } from 'src/course/course.module';
   imports: [PrismaModule, UsersModule, UserProfileModule, CourseModule],
   controllers: [EnrollmentController],
   providers: [EnrollmentService],
+  exports: [EnrollmentService],
 })
 export class EnrollmentModule {}

@@ -6,6 +6,7 @@ import { Logger, ValidationPipe } from '@nestjs/common';
 async function bootstrap() {
   const logger = new Logger('PortProject');
   const app = await NestFactory.create(AppModule);
+  app.enableCors();
 
   app.setGlobalPrefix('api');
   app.useGlobalPipes(
@@ -14,7 +15,7 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
     }),
   );
-
+ 
   await app.listen(envs.port);
   logger.log(`Servidor run on port ${envs.port}`);
 }
